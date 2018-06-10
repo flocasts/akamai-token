@@ -259,95 +259,97 @@ module.exports = {
 }
 
 // CLI Parameter Control
-if (process.argv.length > 2) {
-    const help = "node token [options...]\n" +
-        "\n" +
-        "Options:\n" +
-        "\n" +
-        "-i IP_ADDRESS, --ip=IP_ADDRESS\t\tIP Address to restrict this token to.\n" +
-        "-s START_TIME, --start-time=START_TIME\tWhat is the start time. (Use now for the current time)\n" +
-        "-w SECONDS, --window=SECONDS\t\tHow long is this token valid for?\n" +
-        "-u URL, --url=URL\t\t\tURL path. [Used for:URL]\n" +
-        "-a ACCESS_LIST, --acl=ACCESS_LIST\tAccess control list delimited by ! [ie. /*]\n" +
-        "-k KEY, --key=KEY\t\t\tSecret required to generate the token.\n" +
-        "-p PAYLOAD, --payload=PAYLOAD\t\tAdditional text added to the calculated digest.\n" +
-        "-A ALGORITHM, --algo=ALGORITHM\t\tAlgorithm to use to generate the token. (sha1, sha256,\n" +
-        "\t\t\t\t\tor md5) [Default:sha256]\n" +
-        "-S SALT, --salt=SALT\t\t\tAdditional data validated by the token but NOT included in the token body.\n" +
-        "-I SESSION_ID, --session_id=SESSION_ID\tThe session identifier for single use tokens or other advanced cases.\n" +
-        "-d FIELD_DELIMITER, --field_delimiter=FIELD_DELIMITER\n" +
-        "\t\t\t\t\tCharacter used to delimit token body fields. [Default:~]\n" +
-        "-D ACL_DELIMITER, --acl_delimiter=ACL_DELIMITER\n" +
-        "\t\t\t\t\tCharacter used to delimit acl fields. [Default:!]\n" +
-        "-x, --escape_early\t\t\tCauses strings to be url encoded before being used. (legacy 2.0 behavior)\n" +
-        "\n" +
-        "Examples:\n" +
-        "\n" +
-        "node token --start-time:now --window:86400\n";
-
-    const opt = require('node-getopt').create([
-            ['h', 'help'],
-            ['i', 'ip=ARG'],
-            ['s', 'start-time=ARG'],
-            ['a', 'acl=ARG'],
-            ['e', '=ARG'],
-            ['w', 'window=ARG'],
-            ['u', 'url=ARG'],
-            ['a', '=ARG'],
-            ['k', 'key=ARG'],
-            ['p', 'payload=ARG'],
-            ['A', 'algo=ARG'],
-            ['S', 'salt=ARG'],
-            ['I', 'session-id=ARG'],
-            ['d', 'field-delimiter=ARG'],
-            ['D', 'acl-delimiter=ARG'],
-            ['X', ''],
-            ['x', 'escape-early'],
-            ['v', ''],
-        ])
-        .bindHelp(help)
-        .parseSystem();
-
-    const c = new Akamai_EdgeAuth_Config();
-    const g = new Akamai_EdgeAuth_Generate();
-
-    _.forOwn(opt.options, function (v, o) {
-        if ((o == 'help') || (o == 'h')) {
-            //@TODO
-            exit(0);
-        } else if ((o == 'window') || (o == 'w')) {
-            c.set_window(v);
-        } else if ((o == 'start-time') || (o == 's')) {
-            c.set_start_time(v);
-        } else if ((o == 'ip') || (o == 'i')) {
-            c.set_ip(v);
-        } else if ((o == 'acl') || (o == 'a')) {
-            c.set_acl(v);
-        } else if ((o == 'session-id') || (o == 'I')) {
-            c.set_session_id(v);
-        } else if ((o == 'payload') || (o == 'p')) {
-            c.set_data(v);
-        } else if ((o == 'url') || (o == 'u')) {
-            c.set_url(v);
-        } else if ((o == 'salt') || (o == 'S')) {
-            c.set_salt(v);
-        } else if ((o == 'field-delimiter') || (o == 'd')) {
-            c.set_field_delimiter(v);
-        } else if ((o == 'acl-delimiter') || (o == 'D')) {
-            //@TODO
-        } else if ((o == 'algo') || (o == 'A')) {
-            c.set_algo(v);
-        } else if ((o == 'key') || (o == 'k')) {
-            c.set_key(v);
-        } else if (o == 'debug') {
-            //@TODO
-        } else if ((o == 'escape-early') || (o == 'x')) {
-            c.set_early_url_encoding(true);
-        }
-    });
-
-    const token = g.generate_token(c);
-    console.log(token);
-} else {
-    console.log('try "node token --help" for more information');
+if (process.argv.indexOf('token') > -1) {
+    if (process.argv.length > 2) {
+        const help = "node token [options...]\n" +
+            "\n" +
+            "Options:\n" +
+            "\n" +
+            "-i IP_ADDRESS, --ip=IP_ADDRESS\t\tIP Address to restrict this token to.\n" +
+            "-s START_TIME, --start-time=START_TIME\tWhat is the start time. (Use now for the current time)\n" +
+            "-w SECONDS, --window=SECONDS\t\tHow long is this token valid for?\n" +
+            "-u URL, --url=URL\t\t\tURL path. [Used for:URL]\n" +
+            "-a ACCESS_LIST, --acl=ACCESS_LIST\tAccess control list delimited by ! [ie. /*]\n" +
+            "-k KEY, --key=KEY\t\t\tSecret required to generate the token.\n" +
+            "-p PAYLOAD, --payload=PAYLOAD\t\tAdditional text added to the calculated digest.\n" +
+            "-A ALGORITHM, --algo=ALGORITHM\t\tAlgorithm to use to generate the token. (sha1, sha256,\n" +
+            "\t\t\t\t\tor md5) [Default:sha256]\n" +
+            "-S SALT, --salt=SALT\t\t\tAdditional data validated by the token but NOT included in the token body.\n" +
+            "-I SESSION_ID, --session_id=SESSION_ID\tThe session identifier for single use tokens or other advanced cases.\n" +
+            "-d FIELD_DELIMITER, --field_delimiter=FIELD_DELIMITER\n" +
+            "\t\t\t\t\tCharacter used to delimit token body fields. [Default:~]\n" +
+            "-D ACL_DELIMITER, --acl_delimiter=ACL_DELIMITER\n" +
+            "\t\t\t\t\tCharacter used to delimit acl fields. [Default:!]\n" +
+            "-x, --escape_early\t\t\tCauses strings to be url encoded before being used. (legacy 2.0 behavior)\n" +
+            "\n" +
+            "Examples:\n" +
+            "\n" +
+            "node token --start-time:now --window:86400\n";
+    
+        const opt = require('node-getopt').create([
+                ['h', 'help'],
+                ['i', 'ip=ARG'],
+                ['s', 'start-time=ARG'],
+                ['a', 'acl=ARG'],
+                ['e', '=ARG'],
+                ['w', 'window=ARG'],
+                ['u', 'url=ARG'],
+                ['a', '=ARG'],
+                ['k', 'key=ARG'],
+                ['p', 'payload=ARG'],
+                ['A', 'algo=ARG'],
+                ['S', 'salt=ARG'],
+                ['I', 'session-id=ARG'],
+                ['d', 'field-delimiter=ARG'],
+                ['D', 'acl-delimiter=ARG'],
+                ['X', ''],
+                ['x', 'escape-early'],
+                ['v', ''],
+            ])
+            .bindHelp(help)
+            .parseSystem();
+    
+        const c = new Akamai_EdgeAuth_Config();
+        const g = new Akamai_EdgeAuth_Generate();
+    
+        _.forOwn(opt.options, function (v, o) {
+            if ((o == 'help') || (o == 'h')) {
+                //@TODO
+                exit(0);
+            } else if ((o == 'window') || (o == 'w')) {
+                c.set_window(v);
+            } else if ((o == 'start-time') || (o == 's')) {
+                c.set_start_time(v);
+            } else if ((o == 'ip') || (o == 'i')) {
+                c.set_ip(v);
+            } else if ((o == 'acl') || (o == 'a')) {
+                c.set_acl(v);
+            } else if ((o == 'session-id') || (o == 'I')) {
+                c.set_session_id(v);
+            } else if ((o == 'payload') || (o == 'p')) {
+                c.set_data(v);
+            } else if ((o == 'url') || (o == 'u')) {
+                c.set_url(v);
+            } else if ((o == 'salt') || (o == 'S')) {
+                c.set_salt(v);
+            } else if ((o == 'field-delimiter') || (o == 'd')) {
+                c.set_field_delimiter(v);
+            } else if ((o == 'acl-delimiter') || (o == 'D')) {
+                //@TODO
+            } else if ((o == 'algo') || (o == 'A')) {
+                c.set_algo(v);
+            } else if ((o == 'key') || (o == 'k')) {
+                c.set_key(v);
+            } else if (o == 'debug') {
+                //@TODO
+            } else if ((o == 'escape-early') || (o == 'x')) {
+                c.set_early_url_encoding(true);
+            }
+        });
+    
+        const token = g.generate_token(c);
+        console.log(token);
+    } else {
+        console.log('try "node token --help" for more information');
+    }
 }
