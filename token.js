@@ -222,7 +222,7 @@ class Akamai_EdgeAuth_Config {
 class Akamai_EdgeAuth_Generate {
 
     h2b(str) {
-        let b = new Buffer.alloc(str.length / 2);
+        let b = Buffer.alloc(str.length / 2);
         let i = 0;
         do {
             const octet = str.substr(i, 2);
