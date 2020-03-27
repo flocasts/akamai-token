@@ -1,11 +1,12 @@
 const _ = require('lodash');
 const crypto = require('crypto');
+const URL = require('url');
 
-class Akamai_EdgeAuth_ParameterException extends Error {}
+class Akamai_EdgeAuth_ParameterException extends Error { }
 
 class Akamai_EdgeAuth_Config {
     constructor() {
-        this.algo = "SHA256";
+        this.algo = "sha256";
         this.ip = '';
         this.start_time = 0;
         this.window = 300;
@@ -56,7 +57,7 @@ class Akamai_EdgeAuth_Config {
 
     set_start_time(start_time) {
         // verify starttime is sane
-        if (start_time.toLowerCase() === "now") {
+        if (start_time.toLowerCase && start_time.toLowerCase() === "now") {
             this.start_time = Math.floor(Date.now() / 1000);
         } else {
             if (start_time > 0 && start_time < 4294967295) {
@@ -253,9 +254,63 @@ class Akamai_EdgeAuth_Generate {
     }
 }
 
+// https://flosports.akamaized.net/hls/live/2009442/fd13576s_geo_block/playlist.m3u8
+//      ?hdnea=st=1585325156~exp=1585411556~acl=/hls/live/2009442/fd13576s_geo_block/playlist.m3u8~hmac=99d08efb966cdc1a2d9ae9d646a68724e9c912c0e5463b4196e05bea5c2f0b3c
+
+function Akamai_EdgeAuth_Validate(configIn, tokenParam, url) {
+    const parsedUrl = new URL.URL(url);
+    const token = parsedUrl.searchParams.get(tokenParam);
+
+    const attributeList = token.split(configIn.get_field_delimiter());
+    const attributes = attributeList.reduce((accum, curr) => {
+        const [k, v] = curr.split('=');
+        accum[k] = v;
+        return accum;
+    }, {});
+
+    // Check the ACL and expiration first.  No point going through the
+    // trouble of checking the signature if the ACL is wrong.
+    if (attributes.exp < Math.floor(Date.now() / 1000))
+        throw 'Token expired';
+
+    // Convert the wildcards to regex, but first escape any other chars
+    // that might be seen as regex
+    let regex = attributes.acl.replace(/[-[\]{}()+.,\\^$|#\\s]/g, '\\$&');
+    regex = regex.replace(/\*/g, '.*');
+    regex = regex.replace(/\?/g, '[^/]+');
+
+    if (!RegExp(`^${regex}$`).test(parsedUrl.pathname))
+        throw 'Invalid URL path';
+
+    // Check the signature
+    const configOut = new Akamai_EdgeAuth_Config();
+    configOut.set_field_delimiter(configIn.get_field_delimiter());
+    configOut.set_algo(configIn.get_algo());
+    configOut.set_key(configIn.get_key());
+    configOut.set_early_url_encoding(configIn.get_early_url_encoding());
+    configOut.set_start_time(attributes.st);
+    configOut.set_window(+attributes.exp - +attributes.st);
+    if (attributes.ip)
+        configOut.set_ip(attributes.ip);
+    if (attributes.id)
+        configOut.set_session_id(attributes.id);
+    if (attributes.data)
+        configOut.set_data(attributes.data);
+    if (attributes.acl)
+        configOut.set_acl(attributes.acl);
+    if (attributes.url)
+        configOut.set_url(attributes.url);
+
+    const tokenOut = new Akamai_EdgeAuth_Generate().generate_token(configOut);
+
+    if (token != tokenOut)
+        throw 'Invalid Token';
+}
+
 module.exports = {
     Akamai_EdgeAuth_Config: Akamai_EdgeAuth_Config,
-    Akamai_EdgeAuth_Generate: Akamai_EdgeAuth_Generate
+    Akamai_EdgeAuth_Generate: Akamai_EdgeAuth_Generate,
+    Akamai_EdgeAuth_Validate: Akamai_EdgeAuth_Validate
 }
 
 // CLI Parameter Control
@@ -285,33 +340,33 @@ if (process.argv.indexOf('token') > -1) {
             "Examples:\n" +
             "\n" +
             "node token --start-time:now --window:86400\n";
-    
+
         const opt = require('node-getopt').create([
-                ['h', 'help'],
-                ['i', 'ip=ARG'],
-                ['s', 'start-time=ARG'],
-                ['a', 'acl=ARG'],
-                ['e', '=ARG'],
-                ['w', 'window=ARG'],
-                ['u', 'url=ARG'],
-                ['a', '=ARG'],
-                ['k', 'key=ARG'],
-                ['p', 'payload=ARG'],
-                ['A', 'algo=ARG'],
-                ['S', 'salt=ARG'],
-                ['I', 'session-id=ARG'],
-                ['d', 'field-delimiter=ARG'],
-                ['D', 'acl-delimiter=ARG'],
-                ['X', ''],
-                ['x', 'escape-early'],
-                ['v', ''],
-            ])
+            ['h', 'help'],
+            ['i', 'ip=ARG'],
+            ['s', 'start-time=ARG'],
+            ['a', 'acl=ARG'],
+            ['e', '=ARG'],
+            ['w', 'window=ARG'],
+            ['u', 'url=ARG'],
+            ['a', '=ARG'],
+            ['k', 'key=ARG'],
+            ['p', 'payload=ARG'],
+            ['A', 'algo=ARG'],
+            ['S', 'salt=ARG'],
+            ['I', 'session-id=ARG'],
+            ['d', 'field-delimiter=ARG'],
+            ['D', 'acl-delimiter=ARG'],
+            ['X', ''],
+            ['x', 'escape-early'],
+            ['v', ''],
+        ])
             .bindHelp(help)
             .parseSystem();
-    
+
         const c = new Akamai_EdgeAuth_Config();
         const g = new Akamai_EdgeAuth_Generate();
-    
+
         _.forOwn(opt.options, function (v, o) {
             if ((o == 'help') || (o == 'h')) {
                 //@TODO
@@ -346,7 +401,7 @@ if (process.argv.indexOf('token') > -1) {
                 c.set_early_url_encoding(true);
             }
         });
-    
+
         const token = g.generate_token(c);
         console.log(token);
     } else {
