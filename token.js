@@ -222,7 +222,7 @@ class Akamai_EdgeAuth_Config {
 class Akamai_EdgeAuth_Generate {
 
     h2b(str) {
-        let b = new Buffer(str.length / 2);
+        let b = new Buffer.alloc(str.length / 2);
         let i = 0;
         do {
             const octet = str.substr(i, 2);
@@ -349,7 +349,6 @@ if (process.argv.indexOf('token') > -1) {
             ['e', '=ARG'],
             ['w', 'window=ARG'],
             ['u', 'url=ARG'],
-            ['a', '=ARG'],
             ['k', 'key=ARG'],
             ['p', 'payload=ARG'],
             ['A', 'algo=ARG'],
